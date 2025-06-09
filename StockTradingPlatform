@@ -1,0 +1,179 @@
+import java.io.*;
+import java.util.*;
+
+// Class to represent a Stock
+class Stock {
+    String symbol;
+    String name;
+    double price;
+
+    public Stock(String symbol, String name, double price) {
+        this.symbol = symbol;
+        this.name = name;
+        this.price = price;
+    }
+
+    public void updatePrice(double newPrice) {
+        this.price = newPrice;
+    }
+
+   
+    public String toString() {
+        return symbol + " (" + name + "): $" + price;
+    }
+}
+
+// Class to represent a transaction
+class Transaction {
+    String type; // "BUY" or "SELL"
+    String stockSymbol;
+    int quantity;
+    double price;
+
+    public Transaction(String type, String stockSymbol, int quantity, double price) {
+        this.type = type;
+        this.stockSymbol = stockSymbol;
+        this.quantity = quantity;
+        this.price = price;
+    }
+
+  
+    public String toString() {
+        return type + " " + quantity + " of " + stockSymbol + " at $" + price;
+    }
+}
+
+// Class to represent a user's portfolio
+class Portfolio {
+    Map<String, Integer> holdings = new HashMap<>();
+    List<Transaction> transactions = new ArrayList<>();
+    double balance;
+
+    public Portfolio(double initialBalance) {
+        this.balance = initialBalance;
+    }
+
+    public void buyStock(Stock stock, int quantity) {
+        double totalCost = stock.price * quantity;
+        if (totalCost <= balance) {
+            holdings.put(stock.symbol, holdings.getOrDefault(stock.symbol, 0) + quantity);
+            balance -= totalCost;
+            transactions.add(new Transaction("BUY", stock.symbol, quantity, stock.price));
+            System.out.println("Bought " + quantity + " shares of " + stock.symbol);
+        } else {
+            System.out.println("Insufficient funds!");
+        }
+    }
+
+    public void sellStock(Stock stock, int quantity) {
+        int currentQty = holdings.getOrDefault(stock.symbol, 0);
+        if (quantity <= currentQty) {
+            holdings.put(stock.symbol, currentQty - quantity);
+            balance += stock.price * quantity;
+            transactions.add(new Transaction("SELL", stock.symbol, quantity, stock.price));
+            System.out.println("Sold " + quantity + " shares of " + stock.symbol);
+        } else {
+            System.out.println("Not enough shares to sell!");
+        }
+    }
+
+    public void displayPortfolio(Map<String, Stock> stockMarket) {
+        System.out.println("\n=== Portfolio ===");
+        for (String symbol : holdings.keySet()) {
+            int qty = holdings.get(symbol);
+            double currentValue = qty * stockMarket.get(symbol).price;
+            System.out.println(symbol + ": " + qty + " shares, Value: $" + currentValue);
+        }
+        System.out.println("Cash Balance: $" + balance);
+    }
+
+    public void saveToFile(String filename) {
+        try (PrintWriter out = new PrintWriter(new FileWriter(filename))) {
+            out.println(balance);
+            for (String symbol : holdings.keySet()) {
+                out.println(symbol + " " + holdings.get(symbol));
+            }
+            for (Transaction t : transactions) {
+                out.println("TRANSACTION " + t);
+            }
+            System.out.println("Portfolio saved to file.");
+        } catch (IOException e) {
+            System.out.println("Error saving file: " + e.getMessage());
+        }
+    }
+}
+
+// Main class to simulate the platform
+public class StockTradingPlatform {
+    static Map<String, Stock> stockMarket = new HashMap<>();
+    static Scanner scanner = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        initializeMarket();
+        Portfolio userPortfolio = new Portfolio(10000); // Initial balance
+
+        while (true) {
+            System.out.println("\n=== Stock Trading Menu ===");
+            System.out.println("1. View Market");
+            System.out.println("2. Buy Stock");
+            System.out.println("3. Sell Stock");
+            System.out.println("4. View Portfolio");
+            System.out.println("5. Save Portfolio");
+            System.out.println("6. Exit");
+
+            System.out.print("Enter choice: ");
+            int choice = scanner.nextInt();
+
+            switch (choice) {
+                case 1 -> displayMarket();
+                case 2 -> buyStock(userPortfolio);
+                case 3 -> sellStock(userPortfolio);
+                case 4 -> userPortfolio.displayPortfolio(stockMarket);
+                case 5 -> userPortfolio.saveToFile("portfolio.txt");
+                case 6 -> {
+                    System.out.println("Exiting. Goodbye!");
+                    return;
+                }
+                default -> System.out.println("Invalid choice!");
+            }
+        }
+    }
+
+    private static void initializeMarket() {
+        stockMarket.put("AAPL", new Stock("AAPL", "Apple Inc.", 180.5));
+        stockMarket.put("GOOGL", new Stock("GOOGL", "Alphabet Inc.", 2700.3));
+        stockMarket.put("TSLA", new Stock("TSLA", "Tesla Inc.", 730.8));
+        stockMarket.put("AMZN", new Stock("AMZN", "Amazon Inc.", 3300.2));
+    }
+
+    private static void displayMarket() {
+        System.out.println("\n=== Market Stocks ===");
+        for (Stock stock : stockMarket.values()) {
+            System.out.println(stock);
+        }
+    }
+
+    private static void buyStock(Portfolio portfolio) {
+        System.out.print("Enter stock symbol to buy: ");
+        String symbol = scanner.next().toUpperCase();
+        if (stockMarket.containsKey(symbol)) {
+            System.out.print("Enter quantity to buy: ");
+            int quantity = scanner.nextInt();
+            portfolio.buyStock(stockMarket.get(symbol), quantity);
+        } else {
+            System.out.println("Stock not found.");
+        }
+    }
+
+    private static void sellStock(Portfolio portfolio) {
+        System.out.print("Enter stock symbol to sell: ");
+        String symbol = scanner.next().toUpperCase();
+        if (stockMarket.containsKey(symbol)) {
+            System.out.print("Enter quantity to sell: ");
+            int quantity = scanner.nextInt();
+            portfolio.sellStock(stockMarket.get(symbol), quantity);
+        } else {
+            System.out.println("Stock not found.");
+        }
+    }
+}
